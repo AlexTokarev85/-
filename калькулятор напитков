@@ -1,0 +1,74 @@
+import plotly.graph_objs as go
+import plotly.express as px
+import ipywidgets as widgets
+from ipywidgets import interactive
+from IPython.display import display
+
+# Функция для расчета объема напитков
+def calculate_drinks(num_guests, duration, drink_params):
+    results = {}
+    for drink, params in drink_params.items():
+        volume_per_person_per_hour = params['volume_per_person_per_hour']
+        percentage = params['percentage']
+        total_volume = num_guests * (percentage / 100) * duration * volume_per_person_per_hour
+        results[drink] = total_volume
+    return results
+
+# Параметры напитков (в литрах на человека в час)
+default_drink_params = {
+    'Вино белое': {'volume_per_person_per_hour': 0.15, 'percentage': 20},
+    'Вино красное': {'volume_per_person_per_hour': 0.15, 'percentage': 20},
+    'Шампанское': {'volume_per_person_per_hour': 0.1, 'percentage': 15},
+    'Виски': {'volume_per_person_per_hour': 0.05, 'percentage': 10},
+    'Коньяк': {'volume_per_person_per_hour': 0.05, 'percentage': 5},
+    'Водка': {'volume_per_person_per_hour': 0.05, 'percentage': 10},
+    'Вода с газом': {'volume_per_person_per_hour': 0.25, 'percentage': 30},
+    'Вода без газа': {'volume_per_person_per_hour': 0.25, 'percentage': 40},
+    'Сок апельсиновый': {'volume_per_person_per_hour': 0.25, 'percentage': 20},
+    'Сок мультифрукт': {'volume_per_person_per_hour': 0.25, 'percentage': 20},
+    'Сок яблочный': {'volume_per_person_per_hour': 0.25, 'percentage': 20}
+}
+
+# Функция для создания и отображения интерактивной диаграммы
+def update_plot(num_guests, duration, **drink_params):
+    # Обновление параметров напитков
+    drink_params_updated = {k: {'volume_per_person_per_hour': v[0], 'percentage': v[1]} 
+                            for k, v in drink_params.items()}
+    
+    # Расчет объемов напитков
+    drink_volumes = calculate_drinks(num_guests, duration, drink_params_updated)
+    
+    # Создание бар-чарта с Plotly
+    fig = go.Figure(data=[
+        go.Bar(x=list(drink_volumes.keys()), y=list(drink_volumes.values()), 
+               text=[f'{v:.2f} л' for v in drink_volumes.values()],
+               textposition='auto')
+    ])
+    
+    fig.update_layout(
+        title=f'Объем напитков на фуршете для {num_guests} гостей на {duration} часа',
+        xaxis_title='Тип напитка',
+        yaxis_title='Объем (литры)',
+        xaxis_tickangle=-45
+    )
+    
+    fig.show()
+
+# Создание интерактивных виджетов для каждого параметра
+widgets_params = {drink: widgets.FloatRangeSlider(
+                    value=[params['volume_per_person_per_hour'], params['percentage']],
+                    min=0.0, max=100.0, step=0.05, 
+                    description=drink, continuous_update=False,
+                    layout=widgets.Layout(width='70%')
+                 ) for drink, params in default_drink_params.items()}
+
+# Интерактивные виджеты для количества гостей и длительности
+num_guests_widget = widgets.IntSlider(value=100, min=1, max=500, step=1, description='Гостей:')
+duration_widget = widgets.IntSlider(value=4, min=1, max=12, step=1, description='Часы:')
+
+# Создание интерактивного интерфейса
+interactive_plot = interactive(update_plot, num_guests=num_guests_widget, 
+                               duration=duration_widget, **widgets_params)
+
+# Отображение интерфейса
+display(interactive_plot)
